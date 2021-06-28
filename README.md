@@ -22,7 +22,7 @@ these plugins were developed / tested on the following models:
 * [check_cisco_stackmodules.py](docs/check_cisco_stackmodules.md)
 
 ### Installing dependencies
-* `pip3.6 install argparse itertools pysnmp`
+* `pip3.6 install -r requirements.txt`
 
 ## Contributing
 * You're welcome to open pull requests
