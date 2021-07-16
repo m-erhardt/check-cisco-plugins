@@ -170,8 +170,10 @@ def main():
             retstate = "2"
 
     if retstate == "2":
-        print(["CRITICAL - Switch states: \"", str(",".join(module_states)),
-               "\", Stack port states: \"", str(",".join(port_states)), "\""])
+        print(''.join(['CRITICAL - Switch states: \"',
+                       str(",".join(module_states)),
+                       '\", Stack port states: \"',
+                       str(",".join(port_states)), '\"']))
         sys.exit(2)
     elif retstate == "0":
         print(''.join(["OK - ", str(len(module_states)),

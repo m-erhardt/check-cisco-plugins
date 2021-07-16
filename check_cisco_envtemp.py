@@ -188,7 +188,8 @@ def main():
         # Calculate return code
         returncode = "0"
         for i, val in enumerate(temp_values):
-            if float(temp_values[i][1]) >= float(temp_thresholds[i][1]):
+            if float(temp_values[i][1]) >= float(temp_thresholds[i][1]) and \
+               float(temp_thresholds[i][1]) != 0:
                 returncode = "2"
 
         exit_plugin(returncode, output, perfdata)
