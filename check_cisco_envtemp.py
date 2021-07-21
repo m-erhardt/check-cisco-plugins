@@ -17,7 +17,7 @@
 import sys
 from argparse import ArgumentParser
 from itertools import chain
-from pysnmp.hlapi import nextCmd, SnmpEngine, UsmUserData, \
+from pysnmp.hlapi import bulkCmd, SnmpEngine, UsmUserData, \
                          UdpTransportTarget, \
                          ObjectType, ObjectIdentity, \
                          ContextData, usmHMACMD5AuthProtocol, \
@@ -91,13 +91,14 @@ def get_snmp_table(table_oid, args):
     # initialize empty list for return object
     table = []
 
-    iterator = nextCmd(
+    iterator = bulkCmd(
             SnmpEngine(),
             UsmUserData(args.user, args.authkey, args.privkey,
                         authProtocol=authprot[args.authmode],
                         privProtocol=privprot[args.privmode]),
             UdpTransportTarget((args.host, args.port), timeout=args.timeout),
             ContextData(),
+            0, 50,
             ObjectType(ObjectIdentity(table_oid)),
             lexicographicMode=False
     )
@@ -276,9 +277,9 @@ def main():
             output += ''.join([str(val), "°C, "])
 
             # Calculate return code
-            if val >= crit:
+            if val >= crit > 0:
                 returncode = "2"
-            elif (val >= warn) and (returncode != "2"):
+            elif (val >= warn > 0) and (returncode != "2"):
                 returncode = "1"
 
         # Remove last comma from output string
