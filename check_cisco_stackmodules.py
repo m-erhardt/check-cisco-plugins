@@ -1,4 +1,4 @@
-#!/bin/env python3.6
+#!/usr/bin/env python3
 """
 ###############################################################################
 # check_cisco_stackmodules.py
