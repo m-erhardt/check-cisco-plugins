@@ -162,14 +162,15 @@ def main():
             entry[1] = entry[1].strip()
 
         if len(temp_values) == 0 or len(temp_thresholds) == 0 or \
-            len(temp_state) == 0:
-            # Check if we received data via SNMP, otherwise exit with state Unknown
+           len(temp_state) == 0:
+            # Check if we received data via SNMP, otherwise exit with state
+            # Unknown
             exit_plugin("3", "No data returned via SNMP", "NULL")
 
         # Create perfdata and output strings
         perfdata = ""
         output = "Sensor readings are: "
-        for i, val  in enumerate(temp_values):
+        for i, val in enumerate(temp_values):
             # loop through sensors and construct return and perfdata string
 
             if args.scale is not None:
@@ -204,7 +205,8 @@ def main():
         # Get sensor type (CISCO-ENTITY-SENSOR-MIB::entSensorValue)
         sensor_values = get_snmp_table('1.3.6.1.4.1.9.9.91.1.1.1.1.4', args)
 
-        # Get sensor thresholds (CISCO-ENTITY-SENSOR-MIB::entSensorThresholdValue)
+        # Get sensor thresholds
+        # (CISCO-ENTITY-SENSOR-MIB::entSensorThresholdValue)
         sensor_thresholds = get_snmp_table('1.3.6.1.4.1.9.9.91.1.2.1.1.4', args)
 
         # Get sensor scale (CISCO-ENTITY-SENSOR-MIB::entSensorScale)
@@ -221,8 +223,9 @@ def main():
             entry[1] = entry[1].strip()
 
         if len(sensor_type) == 0 or len(sensor_values) == 0 or \
-            len(sensor_thresholds) == 0 or len(sensor_scale) == 0:
-            # Check if we received data via SNMP, otherwise exit with state Unknown
+           len(sensor_thresholds) == 0 or len(sensor_scale) == 0:
+            # Check if we received data via SNMP, otherwise exit with state
+            # Unknown
             exit_plugin("3", "No data returned via SNMP", "NULL")
 
         # Create list with identifiers of temperature sensors from
@@ -286,6 +289,7 @@ def main():
         output = output.rstrip(', ')
 
         exit_plugin(returncode, output, perfdata)
+
 
 if __name__ == "__main__":
     main()

@@ -151,21 +151,21 @@ def main():
 
     # Replace status code with status strings
     # for i in range(len(module_states)):
-    for i, val in enumerate(module_states):
+    for i, _ in enumerate(module_states):
         module_states[i] = cswSwitchState[module_states[i]]
-    for i, val in enumerate(port_states):
+    for i, _ in enumerate(port_states):
         port_states[i] = cswStackPortOperStatus[port_states[i]]
 
     # Initialize return state ("0" = "OK")
     retstate = "0"
 
     # check if any modules are not in state "ready"
-    for i, val in enumerate(module_states):
+    for i, _ in enumerate(module_states):
         if module_states[i] != "ready":
             retstate = "2"
 
     # check if any stack ports are not in state "up"
-    for i, val in enumerate(port_states):
+    for i, _ in enumerate(port_states):
         if port_states[i] != "up":
             retstate = "2"
 
@@ -180,6 +180,7 @@ def main():
                        " switches are \"ready\" and ", str(len(port_states)),
                        " stack ports are \"up\""]))
     sys.exit(0)
+
 
 if __name__ == "__main__":
     main()
