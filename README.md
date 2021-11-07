@@ -1,3 +1,4 @@
+[![Pylint](https://github.com/m-erhardt/check-cisco-plugins/actions/workflows/pylint.yml/badge.svg)](https://github.com/m-erhardt/check-cisco-plugins/actions/workflows/pylint.yml) [![pycodestyle](https://github.com/m-erhardt/check-cisco-plugins/actions/workflows/pycodestyle.yml/badge.svg)](https://github.com/m-erhardt/check-cisco-plugins/actions/workflows/pycodestyle.yml)
 # check-cisco-plugins
 
 ## About
