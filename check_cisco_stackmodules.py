@@ -115,7 +115,7 @@ def get_snmp_table(table_oid, args):
 
     for error_indication, error_status, error_index, var_binds in iterator:
         if error_indication:
-            print(error_indication)
+            exit_plugin("3", ''.join(['SNMP error: ', str(error_indication)]), "")
         elif error_status:
             print('%s at %s' % (error_status.prettyPrint(),
                                 error_index and
@@ -125,6 +125,22 @@ def get_snmp_table(table_oid, args):
             table.append(str(var_binds[0]).split("="))
     # return list with all OIDs/values from snmp table
     return table
+
+
+def exit_plugin(returncode, output, perfdata):
+    """ Check status and exit accordingly """
+    if returncode == "3":
+        print("UNKNOWN - " + str(output))
+        sys.exit(3)
+    if returncode == "2":
+        print("CRITICAL - " + str(output) + " | " + str(perfdata))
+        sys.exit(2)
+    if returncode == "1":
+        print("WARNING - " + str(output) + " | " + str(perfdata))
+        sys.exit(1)
+    elif returncode == "0":
+        print("OK - " + str(output) + " | " + str(perfdata))
+        sys.exit(0)
 
 
 def main():
@@ -170,16 +186,16 @@ def main():
             retstate = "2"
 
     if retstate == "2":
-        print(''.join(['CRITICAL - Switch states: \"',
-                       str(",".join(module_states)),
-                       '\", Stack port states: \"',
-                       str(",".join(port_states)), '\"']))
-        sys.exit(2)
+        output = ''.join(['CRITICAL - Switch states: \"',
+                          str(",".join(module_states)),
+                          '\", Stack port states: \"',
+                          str(",".join(port_states)), '\"'])
+        exit_plugin("2", output, "")
     elif retstate == "0":
-        print(''.join(["OK - ", str(len(module_states)),
-                       " switches are \"ready\" and ", str(len(port_states)),
-                       " stack ports are \"up\""]))
-    sys.exit(0)
+        output = ''.join(["OK - ", str(len(module_states)),
+                          " switches are \"ready\" and ", str(len(port_states)),
+                          " stack ports are \"up\""])
+        exit_plugin("0", output, "")
 
 
 if __name__ == "__main__":
