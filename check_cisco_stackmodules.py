@@ -133,13 +133,22 @@ def exit_plugin(returncode, output, perfdata):
         print("UNKNOWN - " + str(output))
         sys.exit(3)
     if returncode == "2":
-        print("CRITICAL - " + str(output) + " | " + str(perfdata))
+        if perfdata == "":
+            print(f"CRITICAL - {output}")
+        else:
+            print(f"CRITICAL - {output} | {perfdata}")
         sys.exit(2)
     if returncode == "1":
-        print("WARNING - " + str(output) + " | " + str(perfdata))
+        if perfdata == "":
+            print(f"WARNING - {output}")
+        else:
+            print(f"WARNING - {output} | {perfdata}")
         sys.exit(1)
     elif returncode == "0":
-        print("OK - " + str(output) + " | " + str(perfdata))
+        if perfdata == "":
+            print(f"OK - {output}")
+        else:
+            print(f"OK - {output} | {perfdata}")
         sys.exit(0)
 
 
@@ -186,13 +195,13 @@ def main():
             retstate = "2"
 
     if retstate == "2":
-        output = ''.join(['CRITICAL - Switch states: \"',
+        output = ''.join(['Switch states: \"',
                           str(",".join(module_states)),
                           '\", Stack port states: \"',
                           str(",".join(port_states)), '\"'])
         exit_plugin("2", output, "")
     elif retstate == "0":
-        output = ''.join(["OK - ", str(len(module_states)),
+        output = ''.join([str(len(module_states)),
                           " switches are \"ready\" and ", str(len(port_states)),
                           " stack ports are \"up\""])
         exit_plugin("0", output, "")
