@@ -35,6 +35,5 @@ these plugins were developed / tested on the following models:
     pylint ./*.py \
       --disable=duplicate-code \
       --disable=too-many-branches \
-      --disable=too-many-locals \
-      --disable=consider-using-f-string
+      --disable=too-many-locals
     ```
