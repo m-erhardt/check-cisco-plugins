@@ -1,4 +1,4 @@
-[![Pylint](https://github.com/m-erhardt/check-cisco-plugins/actions/workflows/pylint.yml/badge.svg)](https://github.com/m-erhardt/check-cisco-plugins/actions/workflows/pylint.yml) [![pycodestyle](https://github.com/m-erhardt/check-cisco-plugins/actions/workflows/pycodestyle.yml/badge.svg)](https://github.com/m-erhardt/check-cisco-plugins/actions/workflows/pycodestyle.yml)
+[![Pylint](https://github.com/m-erhardt/check-cisco-plugins/actions/workflows/pylint.yml/badge.svg)](https://github.com/m-erhardt/check-cisco-plugins/actions/workflows/pylint.yml) [![pycodestyle](https://github.com/m-erhardt/check-cisco-plugins/actions/workflows/pycodestyle.yml/badge.svg)](https://github.com/m-erhardt/check-cisco-plugins/actions/workflows/pycodestyle.yml) [![Release](https://img.shields.io/github/release/m-erhardt/check-cisco-plugins.svg)](https://github.com/m-erhardt/check-cisco-plugins/releases)
 # check-cisco-plugins
 
 ## About
