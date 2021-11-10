@@ -5,9 +5,9 @@
 ## Usage
 
 ```
-./check_cisco_stackmodules.py --help
 usage: check_cisco_stackmodules.py [-h] --host HOST [--port PORT]
-                                   [--timeout TIMEOUT] --user USER --authkey
+                                   [--timeout TIMEOUT] --user USER
+                                   [-l {authPriv,authNoPriv}] --authkey
                                    AUTHKEY --privkey PRIVKEY
                                    [--authmode {MD5,SHA,SHA224,SHA256,SHA384,SHA512}]
                                    [--privmode {DES,3DES,AES,AES192,AES256}]
@@ -20,6 +20,8 @@ optional arguments:
   --port PORT           SNMP port
   --timeout TIMEOUT     SNMP timeout
   --user USER           SNMPv3 user name
+  -l {authPriv,authNoPriv}, --seclevel {authPriv,authNoPriv}
+                        SNMPv3 security level
   --authkey AUTHKEY     SNMPv3 auth key
   --privkey PRIVKEY     SNMPv3 priv key
   --authmode {MD5,SHA,SHA224,SHA256,SHA384,SHA512}
