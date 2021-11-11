@@ -4,7 +4,7 @@
 ## About
 * this repository contains a collection of Icinga / Nagios plugins to monitor Cisco IOS and NX-OS devices via SNMPv3
 * Written for python 3
-* Uses SNMPv3 in AuthPriv mode
+* Uses SNMPv3 in AuthPriv or authNoPriv mode
 
 ### Compatibility
 these plugins were developed / tested on the following models:
