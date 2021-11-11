@@ -5,9 +5,9 @@
 ## Usage
 
 ```
-./check_cisco_memusage.py --help
-usage: check_cisco_memusage.py [-h] -H HOST [-p PORT] [-t TIMEOUT] -u USER -A
-                               AUTHKEY -X PRIVKEY
+usage: check_cisco_memusage.py [-h] -H HOST [-p PORT] [-t TIMEOUT] -u USER
+                               [-l {authPriv,authNoPriv}] -A AUTHKEY -X
+                               PRIVKEY
                                [-a {MD5,SHA,SHA224,SHA256,SHA384,SHA512}]
                                [-x {DES,3DES,AES,AES192,AES256}] [-w WARN]
                                [-c CRIT]
@@ -23,6 +23,8 @@ optional arguments:
   -t TIMEOUT, --timeout TIMEOUT
                         SNMP timeout
   -u USER, --user USER  SNMPv3 user name
+  -l {authPriv,authNoPriv}, --seclevel {authPriv,authNoPriv}
+                        SNMPv3 security level
   -A AUTHKEY, --authkey AUTHKEY
                         SNMPv3 auth key
   -X PRIVKEY, --privkey PRIVKEY

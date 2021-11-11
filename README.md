@@ -1,10 +1,10 @@
-[![Pylint](https://github.com/m-erhardt/check-cisco-plugins/actions/workflows/pylint.yml/badge.svg)](https://github.com/m-erhardt/check-cisco-plugins/actions/workflows/pylint.yml) [![pycodestyle](https://github.com/m-erhardt/check-cisco-plugins/actions/workflows/pycodestyle.yml/badge.svg)](https://github.com/m-erhardt/check-cisco-plugins/actions/workflows/pycodestyle.yml)
+[![Pylint](https://github.com/m-erhardt/check-cisco-plugins/actions/workflows/pylint.yml/badge.svg)](https://github.com/m-erhardt/check-cisco-plugins/actions/workflows/pylint.yml) [![pycodestyle](https://github.com/m-erhardt/check-cisco-plugins/actions/workflows/pycodestyle.yml/badge.svg)](https://github.com/m-erhardt/check-cisco-plugins/actions/workflows/pycodestyle.yml) [![Release](https://img.shields.io/github/release/m-erhardt/check-cisco-plugins.svg)](https://github.com/m-erhardt/check-cisco-plugins/releases)
 # check-cisco-plugins
 
 ## About
 * this repository contains a collection of Icinga / Nagios plugins to monitor Cisco IOS and NX-OS devices via SNMPv3
 * Written for python 3
-* Uses SNMPv3 in AuthPriv mode
+* Uses SNMPv3 in AuthPriv or authNoPriv mode
 
 ### Compatibility
 these plugins were developed / tested on the following models:
@@ -35,6 +35,5 @@ these plugins were developed / tested on the following models:
     pylint ./*.py \
       --disable=duplicate-code \
       --disable=too-many-branches \
-      --disable=too-many-locals \
-      --disable=consider-using-f-string
+      --disable=too-many-locals
     ```

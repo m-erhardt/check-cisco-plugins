@@ -16,7 +16,7 @@
 
 import sys
 from argparse import ArgumentParser
-from pysnmp.hlapi import nextCmd, SnmpEngine, UsmUserData, \
+from pysnmp.hlapi import bulkCmd, SnmpEngine, UsmUserData, \
                          UdpTransportTarget, \
                          ObjectType, ObjectIdentity, \
                          ContextData, usmHMACMD5AuthProtocol, \
@@ -79,6 +79,10 @@ def get_args():
                         type=int, dest='timeout', default=10)
     parser.add_argument("--user", required=True, help="SNMPv3 user name",
                         type=str, dest='user')
+    parser.add_argument("-l", "--seclevel", required=False,
+                        help="SNMPv3 security level", type=str,
+                        dest="v3mode",
+                        choices=["authPriv", "authNoPriv"], default="authPriv")
     parser.add_argument("--authkey", required=True, help="SNMPv3 auth key",
                         type=str, dest='authkey')
     parser.add_argument("--privkey", required=True, help="SNMPv3 priv key",
@@ -102,27 +106,42 @@ def get_snmp_table(table_oid, args):
     # initialize empty list for return object
     table = []
 
-    iterator = nextCmd(
+    if args.v3mode == "authPriv":
+        iterator = bulkCmd(
             SnmpEngine(),
             UsmUserData(args.user, args.authkey, args.privkey,
                         authProtocol=authprot[args.authmode],
                         privProtocol=privprot[args.privmode]),
             UdpTransportTarget((args.host, args.port), timeout=args.timeout),
             ContextData(),
+            0, 20,
             ObjectType(ObjectIdentity(table_oid)),
-            lexicographicMode=False
-    )
+            lexicographicMode=False,
+            lookupMib=False
+        )
+    elif args.v3mode == "authNoPriv":
+        iterator = bulkCmd(
+            SnmpEngine(),
+            UsmUserData(args.user, args.authkey,
+                        authProtocol=authprot[args.authmode]),
+            UdpTransportTarget((args.host, args.port), timeout=args.timeout),
+            ContextData(),
+            0, 20,
+            ObjectType(ObjectIdentity(table_oid)),
+            lexicographicMode=False,
+            lookupMib=False
+        )
 
     for error_indication, error_status, error_index, var_binds in iterator:
         if error_indication:
             exit_plugin("3", ''.join(['SNMP error: ', str(error_indication)]), "")
         elif error_status:
-            print('%s at %s' % (error_status.prettyPrint(),
-                                error_index and
-                                var_binds[int(error_index) - 1][0] or '?'))
+            print(f"{error_status.prettyPrint()} at "
+                  f"{error_index and var_binds[int(error_index) - 1][0] or '?'}")
         else:
             # split OID and value into two fields and append to return element
-            table.append(str(var_binds[0]).split("="))
+            table.append([str(var_binds[0][0]), str(var_binds[0][1])])
+
     # return list with all OIDs/values from snmp table
     return table
 
