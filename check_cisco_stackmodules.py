@@ -71,28 +71,29 @@ def get_args():
                  description="Cisco stack module check plugin",
                  epilog=""
              )
-    parser.add_argument("--host", required=True, help="hostname or IP address",
-                        type=str, dest='host')
-    parser.add_argument("--port", required=False, help="SNMP port", type=int,
-                        dest='port', default=161)
-    parser.add_argument("--timeout", required=False, help="SNMP timeout",
-                        type=int, dest='timeout', default=10)
-    parser.add_argument("--user", required=True, help="SNMPv3 user name",
-                        type=str, dest='user')
+    parser.add_argument("-H", "--host", required=True,
+                        help="hostname or IP address", type=str, dest='host')
+    parser.add_argument("-p", "--port", required=False, help="SNMP port",
+                        type=int, dest='port', default=161)
+    parser.add_argument("-t", "--timeout", required=False,
+                        help="SNMP timeout", type=int, dest='timeout',
+                        default=10)
+    parser.add_argument("-u", "--user", required=True,
+                        help="SNMPv3 user name", type=str, dest='user')
     parser.add_argument("-l", "--seclevel", required=False,
                         help="SNMPv3 security level", type=str,
                         dest="v3mode",
                         choices=["authPriv", "authNoPriv"], default="authPriv")
-    parser.add_argument("--authkey", required=True, help="SNMPv3 auth key",
-                        type=str, dest='authkey')
-    parser.add_argument("--privkey", required=True, help="SNMPv3 priv key",
-                        type=str, dest='privkey')
-    parser.add_argument("--authmode", required=False, help="SNMPv3 auth mode",
-                        type=str, dest='authmode',
+    parser.add_argument("-A", "--authkey", required=True,
+                        help="SNMPv3 auth key", type=str, dest='authkey')
+    parser.add_argument("-X", "--privkey", required=True,
+                        help="SNMPv3 priv key", type=str, dest='privkey')
+    parser.add_argument("-a", "--authmode", required=False,
+                        help="SNMPv3 auth mode", type=str, dest='authmode',
                         default='SHA',
                         choices=['MD5', 'SHA', 'SHA224', 'SHA256', 'SHA384',
                                  'SHA512'])
-    parser.add_argument("--privmode", required=False,
+    parser.add_argument("-x", "--privmode", required=False,
                         help="SNMPv3 privacy mode", type=str, dest='privmode',
                         default='AES',
                         choices=['DES', '3DES', 'AES', 'AES192', 'AES256'])
