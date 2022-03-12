@@ -5,28 +5,34 @@
 ## Usage
 
 ```
-usage: check_cisco_stackmodules.py [-h] --host HOST [--port PORT]
-                                   [--timeout TIMEOUT] --user USER
-                                   [-l {authPriv,authNoPriv}] --authkey
-                                   AUTHKEY --privkey PRIVKEY
-                                   [--authmode {MD5,SHA,SHA224,SHA256,SHA384,SHA512}]
-                                   [--privmode {DES,3DES,AES,AES192,AES256}]
+usage: check_cisco_stackmodules.py [-h] -H HOST [-p PORT] [-t TIMEOUT] -u USER
+                                   [-l {authPriv,authNoPriv}] -A AUTHKEY -X
+                                   PRIVKEY
+                                   [-a {MD5,SHA,SHA224,SHA256,SHA384,SHA512}]
+                                   [-x {DES,3DES,AES,AES192,AES256}]
 
 Cisco stack module check plugin
 
 optional arguments:
   -h, --help            show this help message and exit
-  --host HOST           hostname or IP address
-  --port PORT           SNMP port
-  --timeout TIMEOUT     SNMP timeout
-  --user USER           SNMPv3 user name
+
+Connection parameters:
+  -H HOST, --host HOST  hostname or IP address
+  -p PORT, --port PORT  SNMP port
+  -t TIMEOUT, --timeout TIMEOUT
+                        SNMP timeout
+
+SNMPv3 parameters:
+  -u USER, --user USER  SNMPv3 user name
   -l {authPriv,authNoPriv}, --seclevel {authPriv,authNoPriv}
                         SNMPv3 security level
-  --authkey AUTHKEY     SNMPv3 auth key
-  --privkey PRIVKEY     SNMPv3 priv key
-  --authmode {MD5,SHA,SHA224,SHA256,SHA384,SHA512}
+  -A AUTHKEY, --authkey AUTHKEY
+                        SNMPv3 auth key
+  -X PRIVKEY, --privkey PRIVKEY
+                        SNMPv3 priv key
+  -a {MD5,SHA,SHA224,SHA256,SHA384,SHA512}, --authmode {MD5,SHA,SHA224,SHA256,SHA384,SHA512}
                         SNMPv3 auth mode
-  --privmode {DES,3DES,AES,AES192,AES256}
+  -x {DES,3DES,AES,AES192,AES256}, --privmode {DES,3DES,AES,AES192,AES256}
                         SNMPv3 privacy mode
 ```
 

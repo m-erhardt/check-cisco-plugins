@@ -5,23 +5,35 @@
 ## Usage
 
 ```
-usage: check_cisco_memusage.py [-h] -H HOST [-p PORT] [-t TIMEOUT] -u USER
-                               [-l {authPriv,authNoPriv}] -A AUTHKEY -X
-                               PRIVKEY
-                               [-a {MD5,SHA,SHA224,SHA256,SHA384,SHA512}]
-                               [-x {DES,3DES,AES,AES192,AES256}] [-w WARN]
-                               [-c CRIT]
+usage: check_cisco_memusage.py [-h]
                                [--mib {CISCO-PROCESS-MIB,CISCO-MEMORY-POOL-MIB}]
+                               -H HOST [-p PORT] [-t TIMEOUT] [-w WARN]
+                               [-c CRIT] -u USER [-l {authPriv,authNoPriv}] -A
+                               AUTHKEY -X PRIVKEY
+                               [-a {MD5,SHA,SHA224,SHA256,SHA384,SHA512}]
+                               [-x {DES,3DES,AES,AES192,AES256}]
 
 Icinga/Nagios plugin which checks system memory usage on Cisco
 switches/routers
 
 optional arguments:
   -h, --help            show this help message and exit
+
+Check parameters:
+  --mib {CISCO-PROCESS-MIB,CISCO-MEMORY-POOL-MIB}
+                        use OIDs from this MIB
+
+Connection parameters:
   -H HOST, --host HOST  hostname or IP address
   -p PORT, --port PORT  SNMP port
   -t TIMEOUT, --timeout TIMEOUT
                         SNMP timeout
+
+Thresholds:
+  -w WARN, --warn WARN  warning threshold (in percent)
+  -c CRIT, --crit CRIT  warning thresholds (in percent)
+
+SNMPv3 parameters:
   -u USER, --user USER  SNMPv3 user name
   -l {authPriv,authNoPriv}, --seclevel {authPriv,authNoPriv}
                         SNMPv3 security level
@@ -33,10 +45,6 @@ optional arguments:
                         SNMPv3 auth mode
   -x {DES,3DES,AES,AES192,AES256}, --privmode {DES,3DES,AES,AES192,AES256}
                         SNMPv3 privacy mode
-  -w WARN, --warn WARN  warning threshold (in percent)
-  -c CRIT, --crit CRIT  warning thresholds (in percent)
-  --mib {CISCO-PROCESS-MIB,CISCO-MEMORY-POOL-MIB}
-                        use OIDs from this MIB
 ```
 
 ### Usage example
