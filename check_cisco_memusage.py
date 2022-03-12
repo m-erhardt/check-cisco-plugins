@@ -50,45 +50,52 @@ def get_args():
     """ Parse Arguments """
     parser = ArgumentParser(
                  description="Icinga/Nagios plugin which checks system memory \
-                             usage on Cisco switches/routers",
-                 epilog=""
-             )
-    parser.add_argument("-H", "--host", required=True,
-                        help="hostname or IP address", type=str, dest='host')
-    parser.add_argument("-p", "--port", required=False, help="SNMP port",
-                        type=int, dest='port', default=161)
-    parser.add_argument("-t", "--timeout", required=False,
-                        help="SNMP timeout", type=int, dest='timeout',
-                        default=10)
-    parser.add_argument("-u", "--user", required=True,
-                        help="SNMPv3 user name", type=str, dest='user')
-    parser.add_argument("-l", "--seclevel", required=False,
-                        help="SNMPv3 security level", type=str,
-                        dest="v3mode",
-                        choices=["authPriv", "authNoPriv"], default="authPriv")
-    parser.add_argument("-A", "--authkey", required=True,
-                        help="SNMPv3 auth key", type=str, dest='authkey')
-    parser.add_argument("-X", "--privkey", required=True,
-                        help="SNMPv3 priv key", type=str, dest='privkey')
-    parser.add_argument("-a", "--authmode", required=False,
-                        help="SNMPv3 auth mode", type=str, dest='authmode',
-                        default='SHA',
-                        choices=['MD5', 'SHA', 'SHA224', 'SHA256', 'SHA384',
-                                 'SHA512'])
-    parser.add_argument("-x", "--privmode", required=False,
-                        help="SNMPv3 privacy mode", type=str, dest='privmode',
-                        default='AES',
-                        choices=['DES', '3DES', 'AES', 'AES192', 'AES256'])
-    parser.add_argument("-w", "--warn", required=False,
-                        help="warning threshold (in percent)",
-                        type=float, dest='warn', default="70")
-    parser.add_argument("-c", "--crit", required=False,
-                        help="warning thresholds (in percent)",
-                        type=float, dest='crit', default="80")
-    parser.add_argument("--mib", required=False, help="use OIDs from this MIB",
-                        type=str, dest='mib',
-                        default="CISCO-PROCESS-MIB",
-                        choices=["CISCO-PROCESS-MIB", "CISCO-MEMORY-POOL-MIB"])
+                             usage on Cisco switches/routers")
+
+    checkopts = parser.add_argument_group('Check parameters')
+    checkopts.add_argument("--mib", required=False, help="use OIDs from this MIB",
+                           type=str, dest='mib',
+                           default="CISCO-PROCESS-MIB",
+                           choices=["CISCO-PROCESS-MIB", "CISCO-MEMORY-POOL-MIB"])
+
+    connopts = parser.add_argument_group('Connection parameters')
+    connopts.add_argument("-H", "--host", required=True,
+                          help="hostname or IP address", type=str, dest='host')
+    connopts.add_argument("-p", "--port", required=False, help="SNMP port",
+                          type=int, dest='port', default=161)
+    connopts.add_argument("-t", "--timeout", required=False,
+                          help="SNMP timeout", type=int, dest='timeout',
+                          default=10)
+
+    thresholds = parser.add_argument_group('Thresholds')
+    thresholds.add_argument("-w", "--warn", required=False,
+                            help="warning threshold (in percent)",
+                            type=float, dest='warn', default="70")
+    thresholds.add_argument("-c", "--crit", required=False,
+                            help="warning thresholds (in percent)",
+                            type=float, dest='crit', default="80")
+
+    snmpopts = parser.add_argument_group('SNMPv3 parameters')
+    snmpopts.add_argument("-u", "--user", required=True,
+                          help="SNMPv3 user name", type=str, dest='user')
+    snmpopts.add_argument("-l", "--seclevel", required=False,
+                          help="SNMPv3 security level", type=str,
+                          dest="v3mode",
+                          choices=["authPriv", "authNoPriv"], default="authPriv")
+    snmpopts.add_argument("-A", "--authkey", required=True,
+                          help="SNMPv3 auth key", type=str, dest='authkey')
+    snmpopts.add_argument("-X", "--privkey", required=True,
+                          help="SNMPv3 priv key", type=str, dest='privkey')
+    snmpopts.add_argument("-a", "--authmode", required=False,
+                          help="SNMPv3 auth mode", type=str, dest='authmode',
+                          default='SHA',
+                          choices=['MD5', 'SHA', 'SHA224', 'SHA256', 'SHA384',
+                                   'SHA512'])
+    snmpopts.add_argument("-x", "--privmode", required=False,
+                          help="SNMPv3 privacy mode", type=str, dest='privmode',
+                          default='AES',
+                          choices=['DES', '3DES', 'AES', 'AES192', 'AES256'])
+
     args = parser.parse_args()
     return args
 
