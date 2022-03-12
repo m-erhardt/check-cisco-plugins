@@ -5,21 +5,30 @@
 ## Usage
 
 ```
-usage: check_cisco_envtemp.py [-h] -H HOST [-p PORT] [-t TIMEOUT] -u USER
+usage: check_cisco_envtemp.py [-h] [--os {ios,nxos}] [--scale SCALE] -H HOST
+                              [-p PORT] [-t TIMEOUT] -u USER
                               [-l {authPriv,authNoPriv}] -A AUTHKEY -X PRIVKEY
                               [-a {MD5,SHA,SHA224,SHA256,SHA384,SHA512}]
                               [-x {DES,3DES,AES,AES192,AES256}]
-                              [--os {ios,nxos}] [--scale SCALE]
 
 Icinga/Nagios plugin which checks temperature sensors on Cisco
 switches/routers
 
 optional arguments:
   -h, --help            show this help message and exit
+
+Check parameters:
+  --os {ios,nxos}       Switch operating system
+  --scale SCALE         Scaling factor for thresholds (in percent), currently
+                        only works wiht --os nxos
+
+Connection parameters:
   -H HOST, --host HOST  hostname or IP address
   -p PORT, --port PORT  SNMP port
   -t TIMEOUT, --timeout TIMEOUT
                         SNMP timeout
+
+SNMPv3 parameters:
   -u USER, --user USER  SNMPv3 user name
   -l {authPriv,authNoPriv}, --seclevel {authPriv,authNoPriv}
                         SNMPv3 security level
@@ -31,9 +40,6 @@ optional arguments:
                         SNMPv3 auth mode
   -x {DES,3DES,AES,AES192,AES256}, --privmode {DES,3DES,AES,AES192,AES256}
                         SNMPv3 privacy mode
-  --os {ios,nxos}       Switch operating system
-  --scale SCALE         Scaling factor for thresholds (in percent), currently
-                        only works wiht --os nxos
 ```
 
 ### Usage example
