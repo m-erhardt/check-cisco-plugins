@@ -46,6 +46,52 @@ privprot = {
 }
 
 
+class TempSensor:
+    """ Class for temperature sensor """
+
+    def __init__(self, identifier: int):
+        self.identifier: int = identifier
+        self.value: float = None
+        self.scale: int = None
+        self.w_thres: float = None
+        self.c_thres: float = None
+
+    def get_value(self):
+        """ Return sensor value (adjusted for scaling) """
+        if self.scale == 9:
+            return self.value
+        elif self.scale == 8:
+            return self.value / 1000
+
+    def get_threshold(self, severity: str):
+        if severity == "warning":
+            if self.w_thres is None:
+                return None
+            else:
+                if self.scale == 9:
+                    return self.w_thres
+                elif self.scale == 8:
+                    return self.w_thres / 1000
+        elif severity == "critical":
+            if self.c_thres is None:
+                return None
+            else:
+                if self.scale == 9:
+                    return self.c_thres
+                elif self.scale == 8:
+                    return self.c_thres / 1000
+
+class SensorThreshold:
+    """ Class for temperature sensor """
+
+    def __init__(self, identifier: int, belongs_to: int):
+        self.identifier: int = identifier
+        self.belongs_to: int = belongs_to
+        self.severity: float = None
+        self.value: float = None
+        self.scale: float = None
+
+
 def get_args():
     """ Parse Arguments """
     parser = ArgumentParser(
@@ -209,22 +255,11 @@ def check_nxos_device(args):
     # Get sensor type (CISCO-ENTITY-SENSOR-MIB::entSensorValue)
     sensor_values = get_snmp_table('1.3.6.1.4.1.9.9.91.1.1.1.1.4', args)
 
-    # Get sensor thresholds
-    # (CISCO-ENTITY-SENSOR-MIB::entSensorThresholdValue)
-    sensor_thresholds = get_snmp_table('1.3.6.1.4.1.9.9.91.1.2.1.1.4', args)
+    # Get sensor threshold table (CISCO-ENTITY-SENSOR-MIB::entSensorThresholdTable)
+    sensor_thresholds = get_snmp_table('1.3.6.1.4.1.9.9.91.1.2.1', args)
 
     # Get sensor scale (CISCO-ENTITY-SENSOR-MIB::entSensorScale)
     sensor_scale = get_snmp_table('1.3.6.1.4.1.9.9.91.1.1.1.1.2', args)
-
-    # Format returned SNMP data to lists
-    for entry in chain(sensor_type, sensor_values, sensor_scale):
-        entry[0] = entry[0].strip().split(".")[-1:]
-        entry[0] = "".join(map(str, entry[0]))
-        entry[1] = entry[1].strip()
-
-    for entry in sensor_thresholds:
-        entry[0] = entry[0].strip().split(".")[-2:]
-        entry[1] = entry[1].strip()
 
     if len(sensor_type) == 0 or len(sensor_values) == 0 or \
        len(sensor_thresholds) == 0 or len(sensor_scale) == 0:
@@ -232,62 +267,86 @@ def check_nxos_device(args):
         # Unknown
         exit_plugin("3", "No data returned via SNMP", "NULL")
 
-    # Create list with identifiers of temperature sensors from
-    # CISCO-ENTITY-SENSOR-MIB::entSensorType
-    tempsensorids = []
-    for i in sensor_type:
-        if str(i[1]) == "8":
-            tempsensorids.append(i[0])
+    # Extract temperature sensors and create list of TempSensor Objects
+    tempsensors = []
+    for entry in sensor_type:
+        if entry[1] == "8":
+            tempsensors.append(TempSensor(int(entry[0].split(".")[-1:][0])))
+
+    # Append value and scale to TempSensor Objects in tempsensors
+    for entry in tempsensors:
+
+        for value in sensor_values:
+            if int(value[0].split(".")[-1:][0]) == entry.identifier:
+                entry.value = float(value[1])
+                break 
+
+        for scale in sensor_scale:
+            if int(scale[0].split(".")[-1:][0]) == entry.identifier:
+                entry.scale = int(scale[1])
+                break 
+
+    thresholds = []
+    for entry in sensor_thresholds:
+        # Extract thresholds which have comparision operator greaterOrEqual(4) 
+
+        if entry[0].split(".")[13] == "3" and entry[1] == "4":
+            s_id = int(entry[0].split(".")[15])
+            belongs_to = int(entry[0].split(".")[14])
+            
+            thresholds.append(SensorThreshold(s_id, belongs_to))
+
+    for entry in thresholds:
+        # Add severety and value to SensorThreshold-Objects in thresholds
+        for threshold in sensor_thresholds: 
+            if entry.belongs_to == int(threshold[0].split(".")[14]) and \
+               entry.identifier == int(threshold[0].split(".")[15]) and \
+               threshold[0].split(".")[13] == "2":
+                entry.severity = threshold[1]
+
+            if entry.belongs_to == int(threshold[0].split(".")[14]) and \
+               entry.identifier == int(threshold[0].split(".")[15]) and \
+               threshold[0].split(".")[13] == "4":
+                entry.value = threshold[1]
+ 
+    
+    for sensor in tempsensors:
+        # Add thresholds from SensorThreshold-Objects in thresholds to
+        # TempSensor-Objects in tempsensors
+
+        for threshold in thresholds:
+            if sensor.identifier == threshold.belongs_to:
+
+                if threshold.severity == "30":
+                    sensor.c_thres = float(threshold.value)
+
+                elif threshold.severity == "20":
+                    sensor.w_thres = float(threshold.value)
+
+                elif threshold.severity == "10" and sensor.w_thres == None:
+                    sensor.w_thres = float(threshold.value)
 
     # Set return code and generate output and perfdata strings
     returncode = "0"
     perfdata = ""
     output = "Sensor readings are: "
 
-    for i in tempsensorids:
+    for sensor in tempsensors:
         # loop through temperature sensors
-        sensor = i
-
-        for entry in sensor_values:
-            # Get value for sensor ID
-            if str(entry[0]) == str(sensor):
-                val = float(entry[1])
-
-        for entry in sensor_thresholds:
-            # Get warn and crit thresholds for sensor ID
-            if str(entry[0][0]) == str(sensor):
-                if str(entry[0][1]) == "1":
-                    warn = float(entry[1])
-                if str(entry[0][1]) == "2":
-                    crit = float(entry[1])
-
-        for entry in sensor_scale:
-            # Get scaling factor for sensor value
-            if str(entry[0]) == str(sensor):
-                scale = str(entry[1])
-
-        if str(scale) == "8":
-            # Scaling factor is milli(8), divide val, warn and crin /1000
-            val = round(val / 1000, 2)
-            warn = warn / 1000
-            crit = crit / 1000
-
-        if args.scale is not None:
-            # Do not apply MIB-definded thresholds,
-            # instead scale them by <threshold_scale>%
-            warn = round(warn * (args.scale / 100), 1)
-            crit = round(crit * (args.scale / 100), 1)
 
         # Append to perfdata and output string
-        perfdata += ''.join(["\'temp_", str(sensor), "\'=", str(val), ";",
-                             str(warn), ";", str(crit), ";; "])
-        output += ''.join([str(val), "°C, "])
+        perfdata += (f'\'temp_{ sensor.identifier }\'={ sensor.get_value() }'
+                     f';{ sensor.get_threshold("warning") or "" };{ sensor.get_threshold("critical") or "" };; ')
+        output += f'{ sensor.get_value() }°C, '
 
         # Calculate return code
-        if val >= crit > 0:
-            returncode = "2"
-        elif (val >= warn > 0) and (returncode != "2"):
-            returncode = "1"
+        if sensor.get_threshold("critical") is not None:
+            if sensor.get_value() >= sensor.get_threshold("critical"):
+                returncode = "2"
+        if sensor.get_threshold("warning") is not None:
+            if sensor.get_value() >= sensor.get_threshold("warning") and \
+               returncode != "2":
+                returncode = "1"
 
     # Remove last comma from output string
     output = output.rstrip(', ')
