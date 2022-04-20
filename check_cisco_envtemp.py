@@ -60,26 +60,30 @@ class TempSensor:
         """ Return sensor value (adjusted for scaling) """
         if self.scale == 9:
             return self.value
-        elif self.scale == 8:
+        if self.scale == 8:
             return self.value / 1000
+        return self.value
 
     def get_threshold(self, severity: str):
+        """ return thresholds for sensor (adjusted for scaling) """
         if severity == "warning":
             if self.w_thres is None:
-                return None
+                ret = None
             else:
                 if self.scale == 9:
-                    return self.w_thres
+                    ret = self.w_thres
                 elif self.scale == 8:
-                    return self.w_thres / 1000
+                    ret = self.w_thres / 1000
         elif severity == "critical":
             if self.c_thres is None:
-                return None
+                ret = None
             else:
                 if self.scale == 9:
-                    return self.c_thres
+                    ret = self.c_thres
                 elif self.scale == 8:
-                    return self.c_thres / 1000
+                    ret = self.c_thres / 1000
+        return ret
+
 
 class SensorThreshold:
     """ Class for temperature sensor """
@@ -279,26 +283,26 @@ def check_nxos_device(args):
         for value in sensor_values:
             if int(value[0].split(".")[-1:][0]) == entry.identifier:
                 entry.value = float(value[1])
-                break 
+                break
 
         for scale in sensor_scale:
             if int(scale[0].split(".")[-1:][0]) == entry.identifier:
                 entry.scale = int(scale[1])
-                break 
+                break
 
     thresholds = []
     for entry in sensor_thresholds:
-        # Extract thresholds which have comparision operator greaterOrEqual(4) 
+        # Extract thresholds which have comparision operator greaterOrEqual(4)
 
         if entry[0].split(".")[13] == "3" and entry[1] == "4":
             s_id = int(entry[0].split(".")[15])
             belongs_to = int(entry[0].split(".")[14])
-            
+
             thresholds.append(SensorThreshold(s_id, belongs_to))
 
     for entry in thresholds:
         # Add severety and value to SensorThreshold-Objects in thresholds
-        for threshold in sensor_thresholds: 
+        for threshold in sensor_thresholds:
             if entry.belongs_to == int(threshold[0].split(".")[14]) and \
                entry.identifier == int(threshold[0].split(".")[15]) and \
                threshold[0].split(".")[13] == "2":
@@ -308,8 +312,7 @@ def check_nxos_device(args):
                entry.identifier == int(threshold[0].split(".")[15]) and \
                threshold[0].split(".")[13] == "4":
                 entry.value = threshold[1]
- 
-    
+
     for sensor in tempsensors:
         # Add thresholds from SensorThreshold-Objects in thresholds to
         # TempSensor-Objects in tempsensors
@@ -323,7 +326,7 @@ def check_nxos_device(args):
                 elif threshold.severity == "20":
                     sensor.w_thres = float(threshold.value)
 
-                elif threshold.severity == "10" and sensor.w_thres == None:
+                elif threshold.severity == "10" and sensor.w_thres is None:
                     sensor.w_thres = float(threshold.value)
 
     # Set return code and generate output and perfdata strings
@@ -336,7 +339,8 @@ def check_nxos_device(args):
 
         # Append to perfdata and output string
         perfdata += (f'\'temp_{ sensor.identifier }\'={ sensor.get_value() }'
-                     f';{ sensor.get_threshold("warning") or "" };{ sensor.get_threshold("critical") or "" };; ')
+                     f';{ sensor.get_threshold("warning") or "" };'
+                     f'{ sensor.get_threshold("critical") or "" };; ')
         output += f'{ sensor.get_value() }°C, '
 
         # Calculate return code
