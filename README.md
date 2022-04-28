@@ -30,10 +30,5 @@ these plugins were developed / tested on the following models:
 * When contributing code please make sure if follows the [PEP 8](https://www.python.org/dev/peps/pep-0008/) style guide
 * Test your code with pep8 and pylint to avoid obvious issues
   * `pycodestyle ./*.py --max-line-length=100`
-  * 
-    ```bash
-    pylint ./*.py \
-      --disable=duplicate-code \
-      --disable=too-many-branches \
-      --disable=too-many-locals
-    ```
+  * `pylint ./*.py`
+
