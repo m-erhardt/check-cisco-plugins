@@ -208,13 +208,13 @@ def main():
     retstate = "0"
 
     # check if any modules are not in state "ready"
-    for i, _ in enumerate(module_states):
-        if module_states[i] != "ready":
+    for i, obj in enumerate(module_states):
+        if obj != "ready":
             retstate = "2"
 
     # check if any stack ports are not in state "up"
-    for i, _ in enumerate(port_states):
-        if port_states[i] != "up":
+    for i, obj in enumerate(port_states):
+        if obj != "up":
             retstate = "2"
 
     if retstate == "2":

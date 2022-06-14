@@ -241,8 +241,8 @@ def check_ios_device(args):
 
     # Calculate return code
     returncode = "0"
-    for i, _ in enumerate(temp_values):
-        if float(temp_values[i][1]) >= float(temp_thresholds[i][1]) and \
+    for i, obj in enumerate(temp_values):
+        if float(obj[1]) >= float(temp_thresholds[i][1]) and \
            float(temp_thresholds[i][1]) != 0:
             returncode = "2"
 
