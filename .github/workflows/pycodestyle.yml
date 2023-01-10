@@ -4,11 +4,12 @@ on:
   push:
     paths-ignore:
       - 'docs/**'
-      - '.github/**'
+      - 'README.md'
   pull_request:
     paths-ignore:
       - 'docs/**'
-      - '.github/**'
+      - 'README.md'
+  workflow_dispatch:
 
 jobs:
   build:
