@@ -358,10 +358,10 @@ async def check_nxos_device(args):
         # loop through temperature sensors
 
         # Append to perfdata and output string
-        perfdata += (f'\'temp_{ sensor.identifier }\'={ sensor.get_value() }'
-                     f';{ sensor.get_threshold("warning") or "" };'
-                     f'{ sensor.get_threshold("critical") or "" };; ')
-        output += f'{ sensor.get_value() }°C, '
+        perfdata += (f'\'temp_{sensor.identifier}\'={sensor.get_value()}'
+                     f';{sensor.get_threshold("warning") or ""};'
+                     f'{sensor.get_threshold("critical") or ""};; ')
+        output += f'{sensor.get_value()}°C, '
 
         # Calculate return code
         if sensor.get_threshold("critical") is not None:
