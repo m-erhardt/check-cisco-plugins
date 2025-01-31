@@ -15,10 +15,11 @@
 """
 
 import sys
+import asyncio
 from argparse import ArgumentParser
 from itertools import chain
-from pysnmp.hlapi import bulkCmd, SnmpEngine, UsmUserData, \
-                         UdpTransportTarget, \
+from pysnmp.hlapi.v3arch.asyncio import bulk_walk_cmd, SnmpEngine, UsmUserData, \
+                         UdpTransportTarget, Udp6TransportTarget, \
                          ObjectType, ObjectIdentity, \
                          ContextData, usmHMACMD5AuthProtocol, \
                          usmHMACSHAAuthProtocol, \
@@ -63,6 +64,8 @@ def get_args():
                           help="hostname or IP address", type=str, dest='host')
     connopts.add_argument("-p", "--port", required=False, help="SNMP port",
                           type=int, dest='port', default=161)
+    connopts.add_argument("-6", "--ipv6", required=False, help='Use IPv6',
+                          dest='ipv6', action='store_true', default=False)
     connopts.add_argument("-t", "--timeout", required=False,
                           help="SNMP timeout", type=int, dest='timeout',
                           default=10)
@@ -100,47 +103,62 @@ def get_args():
     return args
 
 
-def get_snmp_table(table_oid, args):
+async def get_snmp_table(table_oid, args):
     """ get SNMP table """
 
     # initialize empty list for return object
     table = []
 
+    # Set up TransportTarget object
+    if args.ipv6:
+        transport_target = await Udp6TransportTarget.create((args.host, args.port), args.timeout)
+    else:
+        transport_target = await UdpTransportTarget.create((args.host, args.port), args.timeout)
+
+    # Set up UsmUserData object
     if args.v3mode == "authPriv":
-        iterator = bulkCmd(
-            SnmpEngine(),
-            UsmUserData(args.user, args.authkey, args.privkey,
-                        authProtocol=authprot[args.authmode],
-                        privProtocol=privprot[args.privmode]),
-            UdpTransportTarget((args.host, args.port), timeout=args.timeout),
-            ContextData(),
-            0, 20,
-            ObjectType(ObjectIdentity(table_oid)),
-            lexicographicMode=False,
-            lookupMib=False
+        usm_user_data = UsmUserData(
+            args.user, args.authkey, args.privkey,
+            authProtocol=authprot[args.authmode],
+            privProtocol=privprot[args.privmode]
         )
     elif args.v3mode == "authNoPriv":
-        iterator = bulkCmd(
-            SnmpEngine(),
-            UsmUserData(args.user, args.authkey,
-                        authProtocol=authprot[args.authmode]),
-            UdpTransportTarget((args.host, args.port), timeout=args.timeout),
-            ContextData(),
-            0, 20,
-            ObjectType(ObjectIdentity(table_oid)),
-            lexicographicMode=False,
-            lookupMib=False
+        usm_user_data = UsmUserData(
+            args.user, args.authkey,
+            authProtocol=authprot[args.authmode]
         )
+    else:
+        # Should never occur - prevent pylint "possibly-used-before-assignment"
+        usm_user_data = None
 
+    snmp_engine = SnmpEngine()
+
+    objects = bulk_walk_cmd(
+        snmp_engine,
+        usm_user_data,
+        transport_target,
+        ContextData(),
+        0, 50,
+        ObjectType(ObjectIdentity(table_oid)),
+        lexicographicMode=False,
+        lookupMib=False
+    )
+
+    iterator = [item async for item in objects]
     for error_indication, error_status, error_index, var_binds in iterator:
+
         if error_indication:
-            exit_plugin("3", ''.join(['SNMP error: ', str(error_indication)]), "")
+            # Exit if error occured during SNMP query
+            exit_plugin(3, ''.join(['SNMP error: ', str(error_indication)]), "")
         elif error_status:
             print(f"{error_status.prettyPrint()} at "
                   f"{error_index and var_binds[int(error_index) - 1][0] or '?'}")
         else:
-            # split OID and value into two fields and append to return element
-            table.append([str(var_binds[0][0]), str(var_binds[0][1])])
+            # loop over returned OIDs and append to table
+            for oid_element in var_binds:
+                table.append([str(oid_element[0]), str(oid_element[1])])
+
+    snmp_engine.close_dispatcher()
 
     # return list with all OIDs/values from snmp table
     return table
@@ -162,7 +180,7 @@ def exit_plugin(returncode, output, perfdata):
         sys.exit(0)
 
 
-def main():
+async def main():
     """ Main program code """
 
     # Get Arguments
@@ -172,17 +190,21 @@ def main():
         # Use revised OIDs in CISCO-PROCESS-MIB
         #     CISCO-PROCESS-MIB::cpmCPUMemoryUsed
         #     CISCO-PROCESS-MIB::cpmCPUMemoryFree
-        mem_used = get_snmp_table('1.3.6.1.4.1.9.9.109.1.1.1.1.12', args)
-        mem_free = get_snmp_table('1.3.6.1.4.1.9.9.109.1.1.1.1.13', args)
+        mem_used, mem_free = await asyncio.gather(
+            get_snmp_table('1.3.6.1.4.1.9.9.109.1.1.1.1.12', args),
+            get_snmp_table('1.3.6.1.4.1.9.9.109.1.1.1.1.13', args),
+        )
 
-    if args.mib == "CISCO-MEMORY-POOL-MIB":
+    elif args.mib == "CISCO-MEMORY-POOL-MIB":
         # Use OIDs in CISCO-MEMORY-POOL-MIB
         #     CISCO-MEMORY-POOL-MIB::ciscoMemoryPoolUsed
         #     CISCO-MEMORY-POOL-MIB::ciscoMemoryPoolFree
-        mem_used = get_snmp_table('1.3.6.1.4.1.9.9.48.1.1.1.5', args)
-        mem_free = get_snmp_table('1.3.6.1.4.1.9.9.48.1.1.1.6', args)
+        mem_used, mem_free = await asyncio.gather(
+            get_snmp_table('1.3.6.1.4.1.9.9.48.1.1.1.5', args),
+            get_snmp_table('1.3.6.1.4.1.9.9.48.1.1.1.6', args),
+        )
 
-    if len(mem_used) == 0 or len(mem_free) == 0:
+    if len(mem_used) == 0 or len(mem_free) == 0:  # pylint: disable=E0606
         # Check if we received data via SNMP, otherwise exit with state Unknown
         exit_plugin("3", "No data returned via SNMP", "NULL")
 
@@ -215,6 +237,9 @@ def main():
     for i in memids:
         # loop through memory id's
         memid = i
+
+        # Assign default values to prevent pylint E0606 "possibly-used-before-assignment"
+        used, free = 0.0, 0.0
 
         for entry in mem_used:
             # loop through "mempory used" values and extract reading
@@ -256,4 +281,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

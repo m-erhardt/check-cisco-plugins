@@ -5,18 +5,12 @@
 ## Usage
 
 ```
-usage: check_cisco_memusage.py [-h]
-                               [--mib {CISCO-PROCESS-MIB,CISCO-MEMORY-POOL-MIB}]
-                               -H HOST [-p PORT] [-t TIMEOUT] [-w WARN]
-                               [-c CRIT] -u USER [-l {authPriv,authNoPriv}] -A
-                               AUTHKEY -X PRIVKEY
-                               [-a {MD5,SHA,SHA224,SHA256,SHA384,SHA512}]
-                               [-x {DES,3DES,AES,AES192,AES256}]
+usage: check_cisco_memusage.py [-h] [--mib {CISCO-PROCESS-MIB,CISCO-MEMORY-POOL-MIB}] -H HOST [-p PORT] [-6] [-t TIMEOUT] [-w WARN] [-c CRIT] -u USER [-l {authPriv,authNoPriv}] -A AUTHKEY -X PRIVKEY
+                               [-a {MD5,SHA,SHA224,SHA256,SHA384,SHA512}] [-x {DES,3DES,AES,AES192,AES256}]
 
-Icinga/Nagios plugin which checks system memory usage on Cisco
-switches/routers
+Icinga/Nagios plugin which checks system memory usage on Cisco switches/routers
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
 
 Check parameters:
@@ -26,6 +20,7 @@ Check parameters:
 Connection parameters:
   -H HOST, --host HOST  hostname or IP address
   -p PORT, --port PORT  SNMP port
+  -6, --ipv6            Use IPv6
   -t TIMEOUT, --timeout TIMEOUT
                         SNMP timeout
 

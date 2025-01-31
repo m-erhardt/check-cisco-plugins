@@ -5,17 +5,12 @@
 ## Usage
 
 ```
-usage: check_cisco_cpuload.py [-h]
-                              [--mode {CISCO-PROCESS-MIB_NEW,CISCO-PROCESS-MIB_OLD}]
-                              [-w WARN] [-c CRIT] -H HOST [-p PORT]
-                              [-t TIMEOUT] -u USER [-l {authPriv,authNoPriv}]
-                              -A AUTHKEY -X PRIVKEY
-                              [-a {MD5,SHA,SHA224,SHA256,SHA384,SHA512}]
-                              [-x {DES,3DES,AES,AES192,AES256}]
+usage: check_cisco_cpuload.py [-h] [--mode {CISCO-PROCESS-MIB_NEW,CISCO-PROCESS-MIB_OLD}] [-w WARN] [-c CRIT] -H HOST [-p PORT] [-6] [-t TIMEOUT] -u USER [-l {authPriv,authNoPriv}] -A AUTHKEY -X PRIVKEY
+                              [-a {MD5,SHA,SHA224,SHA256,SHA384,SHA512}] [-x {DES,3DES,AES,AES192,AES256}]
 
 Icinga/Nagios plugin which checks cpu load on Cisco switches/routers
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
 
 Check parameters:
@@ -28,6 +23,7 @@ Thresholds:
 Connection parameters:
   -H HOST, --host HOST  hostname or IP address
   -p PORT, --port PORT  SNMP port
+  -6, --ipv6            Use IPv6
   -t TIMEOUT, --timeout TIMEOUT
                         SNMP timeout
 
@@ -43,7 +39,7 @@ SNMPv3 parameters:
                         SNMPv3 auth mode
   -x {DES,3DES,AES,AES192,AES256}, --privmode {DES,3DES,AES,AES192,AES256}
                         SNMPv3 privacy mode
-  ```
+```
 
 ### Usage example
 ```
