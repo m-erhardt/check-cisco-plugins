@@ -1,2 +1,3 @@
 # Required python modules
 pysnmp>=7.0.0
+cryptography
