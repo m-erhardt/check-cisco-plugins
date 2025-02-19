@@ -190,19 +190,25 @@ async def main():
         # Use revised OIDs in CISCO-PROCESS-MIB
         #     CISCO-PROCESS-MIB::cpmCPUMemoryUsed
         #     CISCO-PROCESS-MIB::cpmCPUMemoryFree
-        mem_used, mem_free = await asyncio.gather(
-            get_snmp_table('1.3.6.1.4.1.9.9.109.1.1.1.1.12', args),
-            get_snmp_table('1.3.6.1.4.1.9.9.109.1.1.1.1.13', args),
-        )
+        try:
+            mem_used, mem_free = await asyncio.gather(
+                get_snmp_table('1.3.6.1.4.1.9.9.109.1.1.1.1.12', args),
+                get_snmp_table('1.3.6.1.4.1.9.9.109.1.1.1.1.13', args),
+            )
+        except Exception as err:  # pylint: disable=broad-exception-caught
+            exit_plugin("3", f'Exception during SNMP query: {type(err)} {err}', "NULL")
 
     elif args.mib == "CISCO-MEMORY-POOL-MIB":
         # Use OIDs in CISCO-MEMORY-POOL-MIB
         #     CISCO-MEMORY-POOL-MIB::ciscoMemoryPoolUsed
         #     CISCO-MEMORY-POOL-MIB::ciscoMemoryPoolFree
-        mem_used, mem_free = await asyncio.gather(
-            get_snmp_table('1.3.6.1.4.1.9.9.48.1.1.1.5', args),
-            get_snmp_table('1.3.6.1.4.1.9.9.48.1.1.1.6', args),
-        )
+        try:
+            mem_used, mem_free = await asyncio.gather(
+                get_snmp_table('1.3.6.1.4.1.9.9.48.1.1.1.5', args),
+                get_snmp_table('1.3.6.1.4.1.9.9.48.1.1.1.6', args),
+            )
+        except Exception as err:  # pylint: disable=broad-exception-caught
+            exit_plugin("3", f'Exception during SNMP query: {type(err)} {err}', "NULL")
 
     if len(mem_used) == 0 or len(mem_free) == 0:  # pylint: disable=E0606
         # Check if we received data via SNMP, otherwise exit with state Unknown

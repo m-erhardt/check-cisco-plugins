@@ -196,22 +196,28 @@ async def main():
         #     CISCO-PROCESS-MIB::cpmCPUTotal5secRev
         #     CISCO-PROCESS-MIB::cpmCPUTotal1minRev
         #     CISCO-PROCESS-MIB::cpmCPUTotal5minRev
-        l5sec, l1min, l5min = await asyncio.gather(
-            get_snmp_table('1.3.6.1.4.1.9.9.109.1.1.1.1.6', args),
-            get_snmp_table('1.3.6.1.4.1.9.9.109.1.1.1.1.7', args),
-            get_snmp_table('1.3.6.1.4.1.9.9.109.1.1.1.1.8', args),
-        )
+        try:
+            l5sec, l1min, l5min = await asyncio.gather(
+                get_snmp_table('1.3.6.1.4.1.9.9.109.1.1.1.1.6', args),
+                get_snmp_table('1.3.6.1.4.1.9.9.109.1.1.1.1.7', args),
+                get_snmp_table('1.3.6.1.4.1.9.9.109.1.1.1.1.8', args),
+            )
+        except Exception as err:  # pylint: disable=broad-exception-caught
+            exit_plugin("3", f'Exception during SNMP query: {type(err)} {err}', "NULL")
 
     elif args.mode == "CISCO-PROCESS-MIB_OLD":
         # Use deprecated OIDs in CISCO-PROCESS-MIB
         #     CISCO-PROCESS-MIB::cpmCPUTotal5sec
         #     CISCO-PROCESS-MIB::cpmCPUTotal1min
         #     CISCO-PROCESS-MIB::cpmCPUTotal5min
-        l5sec, l1min, l5min = await asyncio.gather(
-            get_snmp_table('1.3.6.1.4.1.9.9.109.1.1.1.1.3', args),
-            get_snmp_table('1.3.6.1.4.1.9.9.109.1.1.1.1.4', args),
-            get_snmp_table('1.3.6.1.4.1.9.9.109.1.1.1.1.5', args),
-        )
+        try:
+            l5sec, l1min, l5min = await asyncio.gather(
+                get_snmp_table('1.3.6.1.4.1.9.9.109.1.1.1.1.3', args),
+                get_snmp_table('1.3.6.1.4.1.9.9.109.1.1.1.1.4', args),
+                get_snmp_table('1.3.6.1.4.1.9.9.109.1.1.1.1.5', args),
+            )
+        except Exception as err:  # pylint: disable=broad-exception-caught
+            exit_plugin("3", f'Exception during SNMP query: {type(err)} {err}', "NULL")
     else:
         # Should never occur - prevent pylint E0606 "possibly-used-before-assignment"
         l5sec, l1min, l5min = None, None, None

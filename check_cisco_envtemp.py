@@ -215,16 +215,19 @@ async def check_ios_device(args):
     """ check Cisco IOS device """
     # Cisco IOS switch, using CISCO-ENVMON-MIB
 
-    temp_values, temp_thresholds, temp_state = await asyncio.gather(
-        # Get temperature values
-        # (CISCO-ENVMON-MIB::ciscoEnvMonTemperatureStatusValue)
-        get_snmp_table('1.3.6.1.4.1.9.9.13.1.3.1.3', args),
-        # Get vendor defined thresholds
-        # (CISCO-ENVMON-MIB::ciscoEnvMonTemperatureThreshold)
-        get_snmp_table('1.3.6.1.4.1.9.9.13.1.3.1.4', args),
-        # Get temperature state (CISCO-ENVMON-MIB::ciscoEnvMonTemperatureState)
-        get_snmp_table('1.3.6.1.4.1.9.9.13.1.3.1.6', args),
-    )
+    try:
+        temp_values, temp_thresholds, temp_state = await asyncio.gather(
+            # Get temperature values
+            # (CISCO-ENVMON-MIB::ciscoEnvMonTemperatureStatusValue)
+            get_snmp_table('1.3.6.1.4.1.9.9.13.1.3.1.3', args),
+            # Get vendor defined thresholds
+            # (CISCO-ENVMON-MIB::ciscoEnvMonTemperatureThreshold)
+            get_snmp_table('1.3.6.1.4.1.9.9.13.1.3.1.4', args),
+            # Get temperature state (CISCO-ENVMON-MIB::ciscoEnvMonTemperatureState)
+            get_snmp_table('1.3.6.1.4.1.9.9.13.1.3.1.6', args),
+        )
+    except Exception as err:  # pylint: disable=broad-exception-caught
+        exit_plugin("3", f'Exception during SNMP query: {type(err)} {err}', "NULL")
 
     # Remove everything except identifier from SNMP OID
     # ('SNMPv2-SMI::enterprises.9.9.13.1.3.1.3.1008 ' -> '1008')
@@ -271,19 +274,22 @@ async def check_ios_device(args):
 
 
 async def check_nxos_device(args):
-    """ check Cisco IOS device """
+    """ check Cisco NX-OS device """
     # Cisco NX-OS switch, using CISCO-ENTITY-SENSOR-MIB
 
-    sensor_type, sensor_values, sensor_thresholds, sensor_scale = await asyncio.gather(
-        # Get sensor type (CISCO-ENTITY-SENSOR-MIB::entSensorType)
-        get_snmp_table('1.3.6.1.4.1.9.9.91.1.1.1.1.1', args),
-        # Get sensor type (CISCO-ENTITY-SENSOR-MIB::entSensorValue)
-        get_snmp_table('1.3.6.1.4.1.9.9.91.1.1.1.1.4', args),
-        # Get sensor threshold table (CISCO-ENTITY-SENSOR-MIB::entSensorThresholdTable)
-        get_snmp_table('1.3.6.1.4.1.9.9.91.1.2.1', args),
-        # Get sensor scale (CISCO-ENTITY-SENSOR-MIB::entSensorScale)
-        get_snmp_table('1.3.6.1.4.1.9.9.91.1.1.1.1.2', args),
-    )
+    try:
+        sensor_type, sensor_values, sensor_thresholds, sensor_scale = await asyncio.gather(
+            # Get sensor type (CISCO-ENTITY-SENSOR-MIB::entSensorType)
+            get_snmp_table('1.3.6.1.4.1.9.9.91.1.1.1.1.1', args),
+            # Get sensor type (CISCO-ENTITY-SENSOR-MIB::entSensorValue)
+            get_snmp_table('1.3.6.1.4.1.9.9.91.1.1.1.1.4', args),
+            # Get sensor threshold table (CISCO-ENTITY-SENSOR-MIB::entSensorThresholdTable)
+            get_snmp_table('1.3.6.1.4.1.9.9.91.1.2.1', args),
+            # Get sensor scale (CISCO-ENTITY-SENSOR-MIB::entSensorScale)
+            get_snmp_table('1.3.6.1.4.1.9.9.91.1.1.1.1.2', args),
+        )
+    except Exception as err:  # pylint: disable=broad-exception-caught
+        exit_plugin("3", f'Exception during SNMP query: {type(err)} {err}', "NULL")
 
     if len(sensor_type) == 0 or len(sensor_values) == 0 or \
        len(sensor_thresholds) == 0 or len(sensor_scale) == 0:

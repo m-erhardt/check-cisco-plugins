@@ -199,12 +199,15 @@ async def main():
     # Get Arguments
     args = get_args()
 
-    module_state_table, port_state_table = await asyncio.gather(
-        # Get switch module state (CISCO-STACKWISE-MIB::cswSwitchState)
-        get_snmp_table('1.3.6.1.4.1.9.9.500.1.2.1.1.6', args),
-        # Get switch stack port state (CISCO-STACKWISE-MIB::cswStackPortOperStatus)
-        get_snmp_table('1.3.6.1.4.1.9.9.500.1.2.2.1.1', args),
-    )
+    try:
+        module_state_table, port_state_table = await asyncio.gather(
+            # Get switch module state (CISCO-STACKWISE-MIB::cswSwitchState)
+            get_snmp_table('1.3.6.1.4.1.9.9.500.1.2.1.1.6', args),
+            # Get switch stack port state (CISCO-STACKWISE-MIB::cswStackPortOperStatus)
+            get_snmp_table('1.3.6.1.4.1.9.9.500.1.2.2.1.1', args),
+        )
+    except Exception as err:  # pylint: disable=broad-exception-caught
+        exit_plugin("3", f'Exception during SNMP query: {type(err)} {err}', "NULL")
 
     # Summarize state of all stack modules
     module_states = []
