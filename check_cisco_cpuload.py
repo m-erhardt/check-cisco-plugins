@@ -15,10 +15,11 @@
 """
 
 import sys
+import asyncio
 from argparse import ArgumentParser
 from itertools import chain
-from pysnmp.hlapi import bulkCmd, SnmpEngine, UsmUserData, \
-                         UdpTransportTarget, \
+from pysnmp.hlapi.v3arch.asyncio import bulk_walk_cmd, SnmpEngine, UsmUserData, \
+                         UdpTransportTarget, Udp6TransportTarget, \
                          ObjectType, ObjectIdentity, \
                          ContextData, usmHMACMD5AuthProtocol, \
                          usmHMACSHAAuthProtocol, \
@@ -72,6 +73,8 @@ def get_args():
                           help="hostname or IP address", type=str, dest='host')
     connopts.add_argument("-p", "--port", required=False,
                           help="SNMP port", type=int, dest='port', default=161)
+    connopts.add_argument("-6", "--ipv6", required=False, help='Use IPv6',
+                          dest='ipv6', action='store_true', default=False)
     connopts.add_argument("-t", "--timeout", required=False,
                           help="SNMP timeout", type=int, dest='timeout',
                           default=10)
@@ -101,47 +104,62 @@ def get_args():
     return args
 
 
-def get_snmp_table(table_oid, args):
+async def get_snmp_table(table_oid, args):
     """ get SNMP table """
 
     # initialize empty list for return object
     table = []
 
+    # Set up TransportTarget object
+    if args.ipv6:
+        transport_target = await Udp6TransportTarget.create((args.host, args.port), args.timeout)
+    else:
+        transport_target = await UdpTransportTarget.create((args.host, args.port), args.timeout)
+
+    # Set up UsmUserData object
     if args.v3mode == "authPriv":
-        iterator = bulkCmd(
-            SnmpEngine(),
-            UsmUserData(args.user, args.authkey, args.privkey,
-                        authProtocol=authprot[args.authmode],
-                        privProtocol=privprot[args.privmode]),
-            UdpTransportTarget((args.host, args.port), timeout=args.timeout),
-            ContextData(),
-            0, 20,
-            ObjectType(ObjectIdentity(table_oid)),
-            lexicographicMode=False,
-            lookupMib=False
+        usm_user_data = UsmUserData(
+            args.user, args.authkey, args.privkey,
+            authProtocol=authprot[args.authmode],
+            privProtocol=privprot[args.privmode]
         )
     elif args.v3mode == "authNoPriv":
-        iterator = bulkCmd(
-            SnmpEngine(),
-            UsmUserData(args.user, args.authkey,
-                        authProtocol=authprot[args.authmode]),
-            UdpTransportTarget((args.host, args.port), timeout=args.timeout),
-            ContextData(),
-            0, 20,
-            ObjectType(ObjectIdentity(table_oid)),
-            lexicographicMode=False,
-            lookupMib=False
+        usm_user_data = UsmUserData(
+            args.user, args.authkey,
+            authProtocol=authprot[args.authmode]
         )
+    else:
+        # Should never occur - prevent pylint "possibly-used-before-assignment"
+        usm_user_data = None
 
+    snmp_engine = SnmpEngine()
+
+    objects = bulk_walk_cmd(
+        snmp_engine,
+        usm_user_data,
+        transport_target,
+        ContextData(),
+        0, 50,
+        ObjectType(ObjectIdentity(table_oid)),
+        lexicographicMode=False,
+        lookupMib=False
+    )
+
+    iterator = [item async for item in objects]
     for error_indication, error_status, error_index, var_binds in iterator:
+
         if error_indication:
-            exit_plugin("3", ''.join(['SNMP error: ', str(error_indication)]), "")
+            # Exit if error occured during SNMP query
+            exit_plugin(3, ''.join(['SNMP error: ', str(error_indication)]), "")
         elif error_status:
             print(f"{error_status.prettyPrint()} at "
                   f"{error_index and var_binds[int(error_index) - 1][0] or '?'}")
         else:
-            # split OID and value into two fields and append to return element
-            table.append([str(var_binds[0][0]), str(var_binds[0][1])])
+            # loop over returned OIDs and append to table
+            for oid_element in var_binds:
+                table.append([str(oid_element[0]), str(oid_element[1])])
+
+    snmp_engine.close_dispatcher()
 
     # return list with all OIDs/values from snmp table
     return table
@@ -163,7 +181,7 @@ def exit_plugin(returncode, output, perfdata):
         sys.exit(0)
 
 
-def main():
+async def main():
     """ Main program code """
 
     # Get Arguments
@@ -178,18 +196,31 @@ def main():
         #     CISCO-PROCESS-MIB::cpmCPUTotal5secRev
         #     CISCO-PROCESS-MIB::cpmCPUTotal1minRev
         #     CISCO-PROCESS-MIB::cpmCPUTotal5minRev
-        l5sec = get_snmp_table('1.3.6.1.4.1.9.9.109.1.1.1.1.6', args)
-        l1min = get_snmp_table('1.3.6.1.4.1.9.9.109.1.1.1.1.7', args)
-        l5min = get_snmp_table('1.3.6.1.4.1.9.9.109.1.1.1.1.8', args)
+        try:
+            l5sec, l1min, l5min = await asyncio.gather(
+                get_snmp_table('1.3.6.1.4.1.9.9.109.1.1.1.1.6', args),
+                get_snmp_table('1.3.6.1.4.1.9.9.109.1.1.1.1.7', args),
+                get_snmp_table('1.3.6.1.4.1.9.9.109.1.1.1.1.8', args),
+            )
+        except Exception as err:  # pylint: disable=broad-exception-caught
+            exit_plugin("3", f'Exception during SNMP query: {type(err)} {err}', "NULL")
 
-    if args.mode == "CISCO-PROCESS-MIB_OLD":
+    elif args.mode == "CISCO-PROCESS-MIB_OLD":
         # Use deprecated OIDs in CISCO-PROCESS-MIB
         #     CISCO-PROCESS-MIB::cpmCPUTotal5sec
         #     CISCO-PROCESS-MIB::cpmCPUTotal1min
         #     CISCO-PROCESS-MIB::cpmCPUTotal5min
-        l5sec = get_snmp_table('1.3.6.1.4.1.9.9.109.1.1.1.1.3', args)
-        l1min = get_snmp_table('1.3.6.1.4.1.9.9.109.1.1.1.1.4', args)
-        l5min = get_snmp_table('1.3.6.1.4.1.9.9.109.1.1.1.1.5', args)
+        try:
+            l5sec, l1min, l5min = await asyncio.gather(
+                get_snmp_table('1.3.6.1.4.1.9.9.109.1.1.1.1.3', args),
+                get_snmp_table('1.3.6.1.4.1.9.9.109.1.1.1.1.4', args),
+                get_snmp_table('1.3.6.1.4.1.9.9.109.1.1.1.1.5', args),
+            )
+        except Exception as err:  # pylint: disable=broad-exception-caught
+            exit_plugin("3", f'Exception during SNMP query: {type(err)} {err}', "NULL")
+    else:
+        # Should never occur - prevent pylint E0606 "possibly-used-before-assignment"
+        l5sec, l1min, l5min = None, None, None
 
     if len(l5sec) == 0 or len(l1min) == 0 or len(l5min) == 0:
         # Check if we received data via SNMP, otherwise exit with state Unknown
@@ -215,6 +246,9 @@ def main():
         # loop through CPU id's
         cpuid = i
 
+        # Prevent pylint E0606 "possibly-used-before-assignment"
+        val5sec, val1min, val5min = 0.0, 0.0, 0.0
+
         for entry in l5sec:
             # loop throug 5sec values and extract reading for this CPU ID
             if str(entry[0]) == str(cpuid):
@@ -231,17 +265,13 @@ def main():
                 val5min = float(entry[1])
 
         # Append to perfdata and output string
-        perfdata += ''.join(["\'cpuload_5sec_", str(cpuid), "\'=",
-                             str(val5sec), "%;", str(w5sec), ";",
-                             str(c5sec), ";0;100 ", "\'cpuload_1min_",
-                             str(cpuid), "\'=", str(val1min), "%;", str(w1min),
-                             ";", str(c1min), ";0;100 ", "\'cpuload_5min_",
-                             str(cpuid), "\'=", str(val5min), "%;", str(w5min),
-                             ";", str(c5min), ";0;100 "])
+        perfdata += (
+            f'\'cpuload_5sec_{cpuid}\'={val5sec}%;{w5sec};{c5sec};0;100 '
+            f'\'cpuload_1min_{cpuid}\'={val1min}%;{w1min};{c1min};0;100 '
+            f'\'cpuload_5min_{cpuid}\'={val5min}%;{w5min};{c5min};0;100 '
+        )
 
-        output += ''.join(["CPU ", str(cpuid), ": (5s: ", str(val5sec),
-                           "%, 1m: ", str(val1min), "%, 5m: ", str(val5min),
-                           "%), "])
+        output += f'CPU {cpuid}: (5s: {val5sec}%, 1m: {val1min}%, 5m: {val5min}%), '
 
         # Evaluate against thresholds
         if (val5sec >= c5sec) or (val1min >= c1min) or (val5min >= c5min):
@@ -257,4 +287,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

@@ -15,10 +15,11 @@
 """
 
 import sys
+import asyncio
 from argparse import ArgumentParser
 from itertools import chain
-from pysnmp.hlapi import bulkCmd, SnmpEngine, UsmUserData, \
-                         UdpTransportTarget, \
+from pysnmp.hlapi.v3arch.asyncio import bulk_walk_cmd, SnmpEngine, UsmUserData, \
+                         UdpTransportTarget, Udp6TransportTarget, \
                          ObjectType, ObjectIdentity, \
                          ContextData, usmHMACMD5AuthProtocol, \
                          usmHMACSHAAuthProtocol, \
@@ -66,6 +67,9 @@ class TempSensor:
 
     def get_threshold(self, severity: str):
         """ return thresholds for sensor (adjusted for scaling) """
+
+        ret = None
+
         if severity == "warning":
             if self.w_thres is None:
                 ret = None
@@ -116,6 +120,8 @@ def get_args():
                           help="hostname or IP address", type=str, dest='host')
     connopts.add_argument("-p", "--port", required=False, help="SNMP port",
                           type=int, dest='port', default=161)
+    connopts.add_argument("-6", "--ipv6", required=False, help='Use IPv6',
+                          dest='ipv6', action='store_true', default=False)
     connopts.add_argument("-t", "--timeout", required=False, help="SNMP timeout",
                           type=int, dest='timeout', default=10)
 
@@ -144,66 +150,84 @@ def get_args():
     return args
 
 
-def get_snmp_table(table_oid, args):
+async def get_snmp_table(table_oid, args):
     """ get SNMP table """
 
     # initialize empty list for return object
     table = []
 
+    # Set up TransportTarget object
+    if args.ipv6:
+        transport_target = await Udp6TransportTarget.create((args.host, args.port), args.timeout)
+    else:
+        transport_target = await UdpTransportTarget.create((args.host, args.port), args.timeout)
+
+    # Set up UsmUserData object
     if args.v3mode == "authPriv":
-        iterator = bulkCmd(
-            SnmpEngine(),
-            UsmUserData(args.user, args.authkey, args.privkey,
-                        authProtocol=authprot[args.authmode],
-                        privProtocol=privprot[args.privmode]),
-            UdpTransportTarget((args.host, args.port), timeout=args.timeout),
-            ContextData(),
-            0, 20,
-            ObjectType(ObjectIdentity(table_oid)),
-            lexicographicMode=False,
-            lookupMib=False
+        usm_user_data = UsmUserData(
+            args.user, args.authkey, args.privkey,
+            authProtocol=authprot[args.authmode],
+            privProtocol=privprot[args.privmode]
         )
     elif args.v3mode == "authNoPriv":
-        iterator = bulkCmd(
-            SnmpEngine(),
-            UsmUserData(args.user, args.authkey,
-                        authProtocol=authprot[args.authmode]),
-            UdpTransportTarget((args.host, args.port), timeout=args.timeout),
-            ContextData(),
-            0, 20,
-            ObjectType(ObjectIdentity(table_oid)),
-            lexicographicMode=False,
-            lookupMib=False
+        usm_user_data = UsmUserData(
+            args.user, args.authkey,
+            authProtocol=authprot[args.authmode]
         )
+    else:
+        # Should never occur - prevent pylint "possibly-used-before-assignment"
+        usm_user_data = None
 
+    snmp_engine = SnmpEngine()
+
+    objects = bulk_walk_cmd(
+        snmp_engine,
+        usm_user_data,
+        transport_target,
+        ContextData(),
+        0, 50,
+        ObjectType(ObjectIdentity(table_oid)),
+        lexicographicMode=False,
+        lookupMib=False
+    )
+
+    iterator = [item async for item in objects]
     for error_indication, error_status, error_index, var_binds in iterator:
+
         if error_indication:
-            exit_plugin("3", ''.join(['SNMP error: ', str(error_indication)]), "")
+            # Exit if error occured during SNMP query
+            exit_plugin(3, ''.join(['SNMP error: ', str(error_indication)]), "")
         elif error_status:
             print(f"{error_status.prettyPrint()} at "
                   f"{error_index and var_binds[int(error_index) - 1][0] or '?'}")
         else:
-            # split OID and value into two fields and append to return element
-            table.append([str(var_binds[0][0]), str(var_binds[0][1])])
+            # loop over returned OIDs and append to table
+            for oid_element in var_binds:
+                table.append([str(oid_element[0]), str(oid_element[1])])
+
+    snmp_engine.close_dispatcher()
 
     # return list with all OIDs/values from snmp table
     return table
 
 
-def check_ios_device(args):
+async def check_ios_device(args):
     """ check Cisco IOS device """
     # Cisco IOS switch, using CISCO-ENVMON-MIB
 
-    # Get temperature values
-    # (CISCO-ENVMON-MIB::ciscoEnvMonTemperatureStatusValue)
-    temp_values = get_snmp_table('1.3.6.1.4.1.9.9.13.1.3.1.3', args)
-
-    # Get vendor defined thresholds
-    # (CISCO-ENVMON-MIB::ciscoEnvMonTemperatureThreshold)
-    temp_thresholds = get_snmp_table('1.3.6.1.4.1.9.9.13.1.3.1.4', args)
-
-    # Get temperature state (CISCO-ENVMON-MIB::ciscoEnvMonTemperatureState)
-    temp_state = get_snmp_table('1.3.6.1.4.1.9.9.13.1.3.1.6', args)
+    try:
+        temp_values, temp_thresholds, temp_state = await asyncio.gather(
+            # Get temperature values
+            # (CISCO-ENVMON-MIB::ciscoEnvMonTemperatureStatusValue)
+            get_snmp_table('1.3.6.1.4.1.9.9.13.1.3.1.3', args),
+            # Get vendor defined thresholds
+            # (CISCO-ENVMON-MIB::ciscoEnvMonTemperatureThreshold)
+            get_snmp_table('1.3.6.1.4.1.9.9.13.1.3.1.4', args),
+            # Get temperature state (CISCO-ENVMON-MIB::ciscoEnvMonTemperatureState)
+            get_snmp_table('1.3.6.1.4.1.9.9.13.1.3.1.6', args),
+        )
+    except Exception as err:  # pylint: disable=broad-exception-caught
+        exit_plugin("3", f'Exception during SNMP query: {type(err)} {err}', "NULL")
 
     # Remove everything except identifier from SNMP OID
     # ('SNMPv2-SMI::enterprises.9.9.13.1.3.1.3.1008 ' -> '1008')
@@ -249,21 +273,23 @@ def check_ios_device(args):
     exit_plugin(returncode, output, perfdata)
 
 
-def check_nxos_device(args):
-    """ check Cisco IOS device """
+async def check_nxos_device(args):
+    """ check Cisco NX-OS device """
     # Cisco NX-OS switch, using CISCO-ENTITY-SENSOR-MIB
 
-    # Get sensor type (CISCO-ENTITY-SENSOR-MIB::entSensorType)
-    sensor_type = get_snmp_table('1.3.6.1.4.1.9.9.91.1.1.1.1.1', args)
-
-    # Get sensor type (CISCO-ENTITY-SENSOR-MIB::entSensorValue)
-    sensor_values = get_snmp_table('1.3.6.1.4.1.9.9.91.1.1.1.1.4', args)
-
-    # Get sensor threshold table (CISCO-ENTITY-SENSOR-MIB::entSensorThresholdTable)
-    sensor_thresholds = get_snmp_table('1.3.6.1.4.1.9.9.91.1.2.1', args)
-
-    # Get sensor scale (CISCO-ENTITY-SENSOR-MIB::entSensorScale)
-    sensor_scale = get_snmp_table('1.3.6.1.4.1.9.9.91.1.1.1.1.2', args)
+    try:
+        sensor_type, sensor_values, sensor_thresholds, sensor_scale = await asyncio.gather(
+            # Get sensor type (CISCO-ENTITY-SENSOR-MIB::entSensorType)
+            get_snmp_table('1.3.6.1.4.1.9.9.91.1.1.1.1.1', args),
+            # Get sensor type (CISCO-ENTITY-SENSOR-MIB::entSensorValue)
+            get_snmp_table('1.3.6.1.4.1.9.9.91.1.1.1.1.4', args),
+            # Get sensor threshold table (CISCO-ENTITY-SENSOR-MIB::entSensorThresholdTable)
+            get_snmp_table('1.3.6.1.4.1.9.9.91.1.2.1', args),
+            # Get sensor scale (CISCO-ENTITY-SENSOR-MIB::entSensorScale)
+            get_snmp_table('1.3.6.1.4.1.9.9.91.1.1.1.1.2', args),
+        )
+    except Exception as err:  # pylint: disable=broad-exception-caught
+        exit_plugin("3", f'Exception during SNMP query: {type(err)} {err}', "NULL")
 
     if len(sensor_type) == 0 or len(sensor_values) == 0 or \
        len(sensor_thresholds) == 0 or len(sensor_scale) == 0:
@@ -338,10 +364,10 @@ def check_nxos_device(args):
         # loop through temperature sensors
 
         # Append to perfdata and output string
-        perfdata += (f'\'temp_{ sensor.identifier }\'={ sensor.get_value() }'
-                     f';{ sensor.get_threshold("warning") or "" };'
-                     f'{ sensor.get_threshold("critical") or "" };; ')
-        output += f'{ sensor.get_value() }°C, '
+        perfdata += (f'\'temp_{sensor.identifier}\'={sensor.get_value()}'
+                     f';{sensor.get_threshold("warning") or ""};'
+                     f'{sensor.get_threshold("critical") or ""};; ')
+        output += f'{sensor.get_value()}°C, '
 
         # Calculate return code
         if sensor.get_threshold("critical") is not None:
@@ -374,18 +400,18 @@ def exit_plugin(returncode, output, perfdata):
         sys.exit(0)
 
 
-def main():
+async def main():
     """ Main program code """
 
     # Get Arguments
     args = get_args()
 
     if args.os == "ios":
-        check_ios_device(args)
+        await check_ios_device(args)
 
     if args.os == "nxos":
-        check_nxos_device(args)
+        await check_nxos_device(args)
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
